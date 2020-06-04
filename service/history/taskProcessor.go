@@ -56,16 +56,16 @@ type (
 	}
 
 	taskProcessor struct {
-		shard         ShardContext
-		cache         *historyCache
-		shutdownCh    chan struct{}
-		tasksCh       chan *taskInfo
-		config        *Config
-		logger        log.Logger
-		metricsClient metrics.Client
-		timeSource    clock.TimeSource
-		retryPolicy   backoff.RetryPolicy
-		workerWG      sync.WaitGroup
+		shard                   shard.Context
+		shutdownCh              chan struct{}
+		tasksCh                 chan *taskInfo
+		config                  *config.Config
+		logger                  log.Logger
+		metricsClient           metrics.Client
+		timeSource              clock.TimeSource
+		retryPolicy             backoff.RetryPolicy
+		workerWG                sync.WaitGroup
+		domainMetricsScopeCache cache.DomainMetricsScopeCache
 
 		// worker coroutines notification
 		workerNotificationChans []chan struct{}
@@ -109,6 +109,7 @@ func newTaskProcessor(
 		config:                  shard.GetConfig(),
 		logger:                  logger,
 		metricsClient:           shard.GetMetricsClient(),
+		domainMetricsScopeCache: shard.GetService().GetDomainMetricsScopeCache(),
 		timeSource:              shard.GetTimeSource(),
 		workerNotificationChans: workerNotificationChans,
 		retryPolicy:             common.CreatePersistanceRetryPolicy(),
@@ -244,12 +245,24 @@ func (t *taskProcessor) processTaskOnce(
 	default:
 	}
 
-	startTime := t.timeSource.Now()
-	scopeIdx, err := task.processor.process(task)
+	var scopeIdx int
+	var err error
 
-	scope := t.metricsClient.Scope(scopeIdx)
-	// Access domain cache
-	t.getDomainTagByID(task.task.GetDomainID())
+	domainID := task.task.GetDomainID()
+
+	scopeIdx, err = task.processor.process(task)
+	scope, found := t.domainMetricsScopeCache.Get(domainID, scopeIdx)
+
+	if !found {
+		domainTag, err := t.getDomainTagByID(domainID)
+		scope = t.metricsClient.Scope(scopeIdx).Tagged(domainTag)
+		// do not cache DomainUnknownTag
+		if err == nil {
+			t.domainMetricsScopeCache.Put(domainID, scopeIdx, scope)
+		}
+	}
+
+	startTime := t.timeSource.Now()
 	if task.shouldProcessTask {
 		scope.IncCounter(metrics.TaskRequests)
 		scope.RecordTimer(metrics.TaskProcessingLatency, time.Since(startTime))
@@ -330,11 +343,11 @@ func (t *taskProcessor) ackTaskOnce(
 	}
 }
 
-func (t *taskProcessor) getDomainTagByID(domainID string) metrics.Tag {
+func (t *taskProcessor) getDomainTagByID(domainID string) (metrics.Tag, error) {
 	domainName, err := t.shard.GetDomainCache().GetDomainName(domainID)
 	if err != nil {
 		t.logger.Error("Unable to get domainName", tag.Error(err))
-		return metrics.DomainUnknownTag()
+		return metrics.DomainUnknownTag(), err
 	}
-	return metrics.DomainTag(domainName)
+	return metrics.DomainTag(domainName), nil
 }

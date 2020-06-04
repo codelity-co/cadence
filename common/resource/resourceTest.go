@@ -63,12 +63,14 @@ type (
 
 		// other common resources
 
-		DomainCache       *cache.MockDomainCache
-		TimeSource        clock.TimeSource
-		PayloadSerializer persistence.PayloadSerializer
-		MetricsClient     metrics.Client
-		ArchivalMetadata  *archiver.MockArchivalMetadata
-		ArchiverProvider  *provider.MockArchiverProvider
+		DomainCache             *cache.MockDomainCache
+		DomainMetricsScopeCache cache.DomainMetricsScopeCache
+		TimeSource              clock.TimeSource
+		PayloadSerializer       persistence.PayloadSerializer
+		MetricsClient           metrics.Client
+		ArchivalMetadata        *archiver.MockArchivalMetadata
+		ArchiverProvider        *provider.MockArchiverProvider
+		BlobstoreClient         *blobstore.MockClient
 
 		// membership infos
 
@@ -173,12 +175,14 @@ func NewTest(
 
 		// other common resources
 
-		DomainCache:       cache.NewMockDomainCache(controller),
-		TimeSource:        clock.NewRealTimeSource(),
-		PayloadSerializer: persistence.NewPayloadSerializer(),
-		MetricsClient:     metrics.NewClient(scope, serviceMetricsIndex),
-		ArchivalMetadata:  &archiver.MockArchivalMetadata{},
-		ArchiverProvider:  &provider.MockArchiverProvider{},
+		DomainCache:             cache.NewMockDomainCache(controller),
+		DomainMetricsScopeCache: cache.NewDomainMetricsScopeCache(),
+		TimeSource:              clock.NewRealTimeSource(),
+		PayloadSerializer:       persistence.NewPayloadSerializer(),
+		MetricsClient:           metrics.NewClient(scope, serviceMetricsIndex),
+		ArchivalMetadata:        &archiver.MockArchivalMetadata{},
+		ArchiverProvider:        &provider.MockArchiverProvider{},
+		BlobstoreClient:         &blobstore.MockClient{},
 
 		// membership infos
 
@@ -252,6 +256,11 @@ func (s *Test) GetClusterMetadata() cluster.Metadata {
 // GetDomainCache for testing
 func (s *Test) GetDomainCache() cache.DomainCache {
 	return s.DomainCache
+}
+
+// GetDomainMetricsScopeCache for testing
+func (s *Test) GetDomainMetricsScopeCache() cache.DomainMetricsScopeCache {
+	return s.DomainMetricsScopeCache
 }
 
 // GetTimeSource for testing
