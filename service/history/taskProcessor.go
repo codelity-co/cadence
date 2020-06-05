@@ -59,16 +59,16 @@ type (
 	}
 
 	taskProcessor struct {
-		shard         shard.Context
-		cache         *execution.Cache
-		shutdownCh    chan struct{}
-		tasksCh       chan *taskInfo
-		config        *config.Config
-		logger        log.Logger
-		metricsClient metrics.Client
-		timeSource    clock.TimeSource
-		retryPolicy   backoff.RetryPolicy
-		workerWG      sync.WaitGroup
+		shard                   shard.Context
+		cache                   *execution.Cache
+		shutdownCh              chan struct{}
+		tasksCh                 chan *taskInfo
+		config                  *config.Config
+		logger                  log.Logger
+		metricsClient           metrics.Client
+		timeSource              clock.TimeSource
+		retryPolicy             backoff.RetryPolicy
+		workerWG                sync.WaitGroup
 		domainMetricsScopeCache cache.DomainMetricsScopeCache
 		// worker coroutines notification
 		workerNotificationChans []chan struct{}

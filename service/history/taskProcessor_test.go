@@ -36,6 +36,7 @@ import (
 	"github.com/uber/cadence/common/metrics"
 	"github.com/uber/cadence/common/persistence"
 	"github.com/uber/cadence/service/history/config"
+	"github.com/uber/cadence/service/history/constants"
 	"github.com/uber/cadence/service/history/shard"
 )
 
@@ -178,17 +179,10 @@ func (s *taskProcessorSuite) TestProcessTaskAndAck_DomainTrue_ProcessErrNoErr() 
 		return true, nil
 	}
 	s.mockProcessor.On("getTaskFilter").Return(taskFilter).Once()
-<<<<<<< HEAD
-	s.mockProcessor.On("process", task).Return(s.scopeIdx, err).Once()
-	s.mockProcessor.On("process", task).Return(s.scopeIdx, nil).Once()
-	s.mockProcessor.On("complete", task).Once()
-	s.mockShard.Resource.DomainCache.EXPECT().GetDomainName(gomock.Any()).Return(testDomainName, nil).Times(2)
-=======
 	s.mockProcessor.On("process", taskInfo).Return(s.scopeIdx, err).Once()
 	s.mockProcessor.On("process", taskInfo).Return(s.scopeIdx, nil).Once()
 	s.mockProcessor.On("complete", taskInfo).Once()
 	s.mockShard.Resource.DomainCache.EXPECT().GetDomainName(gomock.Any()).Return(constants.TestDomainName, nil).Times(1)
->>>>>>> 12c258a1... Added metricScope cache implementation (#3299)
 	s.taskProcessor.processTaskAndAck(
 		s.notificationChan,
 		task,
